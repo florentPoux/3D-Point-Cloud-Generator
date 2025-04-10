@@ -17,14 +17,103 @@ Tested on Windows 11 and MacOS
 🎵 Note: Have fun with this Code Solution.
 """
 
+#%% 1. Environment + setup
+
 import numpy as np
 import open3d as o3d
-import random
-import os
-import math
-from pathlib import Path
 
-#%% 1. Horizontal Shape Generation Function
+# import random
+import os
+# import math
+
+import matplotlib.pyplot as plt
+# from matplotlib.colors import ListedColormap
+
+# from pathlib import Path
+
+#%% 2. 3D Visualizer utility
+
+def visualize_point_cloud(points, labels, show_ui=True, save_image=None):
+    """Visualize point cloud with color-coded labels"""
+    # Define colors for each class
+    color_map = {
+        0: [0.5, 0.5, 0.5],  # Gray for undefined
+        1: [0.8, 0.7, 0.5],  # Tan for horizontal planes
+        2: [0.7, 0.2, 0.2],  # Red for vertical planes
+        3: [0.2, 0.7, 0.2],  # Green for spheres
+        4: [0.2, 0.2, 0.7]   # Blue for cubes
+    }
+    
+    # Apply colors based on labels
+    colors = np.zeros((points.shape[0], 3))
+    for i, label in enumerate(labels):
+        colors[i] = color_map.get(label, [0.5, 0.5, 0.5])
+    
+    # Create Open3D point cloud
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.colors = o3d.utility.Vector3dVector(colors)
+    
+    if show_ui:
+        # Visualize
+        print("Class labels:")
+        print("- Gray: Undefined (0)")
+        print("- Tan: Horizontal planes (1)")
+        print("- Red: Vertical planes (2)")
+        print("- Green: Spheres (3)")
+        print("- Blue: Cubes (4)")
+        
+        o3d.visualization.draw_geometries([pcd], 
+                                         window_name="Synthetic Room Visualization",
+                                         width=1980, height=1080)
+    
+    if save_image:
+        # Create a visualization using matplotlib for better control
+        fig = plt.figure(figsize=(12, 10))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Define label names for legend
+        label_names = {
+            0: "Undefined",
+            1: "Horizontal Plane",
+            2: "Vertical Plane",
+            3: "Sphere",
+            4: "Cube"
+        }
+        
+        # Plot each class separately for legend
+        unique_labels = np.unique(labels)
+        for label in unique_labels:
+            mask = labels == label
+            if np.any(mask):
+                ax.scatter(
+                    points[mask, 0], 
+                    points[mask, 1], 
+                    points[mask, 2],
+                    c=[color_map[label]],
+                    label=label_names.get(label, f"Class {label}"),
+                    alpha=0.7,
+                    s=1
+                )
+        
+        # Set axis limits and labels
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_title('Synthetic Room Point Cloud')
+        
+        # Add legend
+        ax.legend()
+        
+        # Adjust view
+        ax.view_init(elev=30, azim=45)
+        
+        # Save figure
+        plt.savefig(save_image, dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        print(f"Saved visualization to {save_image}")
+
+#%% 3. Horizontal Shape Generation Function
 def generate_horizontal_plane(center, width, length, point_density=100, noise_level=0.02):
     """Generate a horizontal plane with noise"""
     # Calculate number of points based on density and area
@@ -54,8 +143,9 @@ def generate_horizontal_plane(center, width, length, point_density=100, noise_le
 # How can we have fun with this:
 floor_center = [5, 5, 0]
 floor_points, floor_labels = generate_horizontal_plane(floor_center, width=10, length=10)
+visualize_point_cloud(floor_points, floor_labels, show_ui=True, save_image=None)
 
-#%% 2. Vertical Shape Generation Function
+#%% 4. Vertical Shape Generation Function
 def generate_vertical_plane(center, width, height, orientation=0, point_density=100, noise_level=0.02):
     """Generate a vertical plane with noise"""
     # Calculate number of points based on density and area
@@ -91,8 +181,10 @@ def generate_vertical_plane(center, width, height, orientation=0, point_density=
 # How can we have fun with this:
 wall_center = [0, 5, 1.5]
 wall_points, wall_labels = generate_vertical_plane(wall_center, width=10, height=3, orientation=90)
+visualize_point_cloud(wall_points, wall_labels, show_ui=True, save_image=None)
 
-#%% 3. Spherical Shape Generation Function
+
+#%% 5. Spherical Shape Generation Function
 def generate_sphere(center, radius, point_density=100, noise_level=0.02):
     """Generate a sphere with noise"""
     # Calculate approximate number of points based on surface area and density
@@ -121,9 +213,12 @@ def generate_sphere(center, radius, point_density=100, noise_level=0.02):
 
 # How can we have fun with this:
 sphere_center = [5, 5, 1.5]
-sphere_points, sphere_labels = generate_sphere(sphere_center, radius=0.5)
+sphere_points, sphere_labels = generate_sphere(sphere_center, radius=0.5, point_density=1000)
+visualize_point_cloud(sphere_points, sphere_labels, show_ui=True, save_image=None)
 
-#%% 4. Cube Shape Generation Function
+
+#%% 6. Cube Shape Generation Function
+
 def generate_cube(center, size, point_density=100, noise_level=0.02):
     """Generate a cube with noise"""
     half_size = size / 2
@@ -176,9 +271,12 @@ def generate_cube(center, size, point_density=100, noise_level=0.02):
 
 # How can we have fun with this:
 cube_center = [3, 4, 1]
-cube_points, cube_labels = generate_cube(cube_center, size=0.8)
+cube_points, cube_labels = generate_cube(cube_center, size=0.8, point_density=1000)
+visualize_point_cloud(cube_points, cube_labels, show_ui=True, save_image=None)
 
-#%% 5. Random Noise Generation
+
+#%% 7. Random Noise Generation
+
 def generate_random_noise(room_min, room_max, num_points=1000, label=0):
     """Generate random noise points throughout the room"""
     # Create random points within the room bounds
@@ -197,8 +295,9 @@ def generate_random_noise(room_min, room_max, num_points=1000, label=0):
 room_min = [0, 0, 0]
 room_max = [10, 8, 3]
 noise_points, noise_labels = generate_random_noise(room_min, room_max, num_points=500)
+visualize_point_cloud(noise_points, noise_labels, show_ui=True, save_image=None)
 
-#%% 6. Room Generation
+#%% 8. Generating simulated training
 
 def generate_room(
     room_size=(10, 8, 3),
@@ -385,8 +484,10 @@ def generate_room(
 
 # How can we have fun with this:
 room_points, room_labels = generate_room(room_size=(8, 6, 2.5), num_spheres=3, num_cubes=2)
+visualize_point_cloud(room_points, room_labels, show_ui=True, save_image=None)
 
-#%% 7. Export Functions
+
+#%% 9. Custom Export Function: PLY Writer
 
 def write_ply_with_labels(points, labels, filename):
     """Write point cloud with labels to PLY file"""
@@ -424,9 +525,9 @@ def write_ply_with_labels(points, labels, filename):
     print(f"Saved point cloud with {len(points)} points to {filename}")
 
 # How can we have fun with this:
-write_ply_with_labels(room_points, room_labels, "output.ply")
+write_ply_with_labels(room_points, room_labels, "output_scalars.ply")
 
-#%% 8. Save with Open3D
+#%% 10. Export Function: Save with Open3D
 def save_with_open3d(points, labels, filename):
     """Save point cloud with labels using Open3D"""
     # Create Open3D point cloud
@@ -459,7 +560,7 @@ def save_with_open3d(points, labels, filename):
 # How can we have fun with this:
 save_with_open3d(room_points, room_labels, "output_colored.ply")
 
-#%% 9. Main function to generate room scenes
+#%% 11. Main function to generate room scenes
 
 def generate_room_scenes(num_scenes=5, output_dir="synthetic_rooms"):
     """Generate multiple room scenes and save them as PLY files"""
@@ -513,4 +614,4 @@ def generate_room_scenes(num_scenes=5, output_dir="synthetic_rooms"):
     print(f"Generated {num_scenes} room scenes in {output_dir} directory")
 
 # How can we have fun with this:
-generate_room_scenes(num_scenes=3, output_dir="output_rooms")
+generate_room_scenes(num_scenes=15, output_dir="output_rooms_3")
